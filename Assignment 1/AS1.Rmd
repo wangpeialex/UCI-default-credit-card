@@ -1,0 +1,32 @@
+---
+title: "Assignment 1"
+author: "Group 6"
+date: "9/10/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load library}
+library(e1071)
+rice = read.delim("~/Desktop/BT2101 Proj/Assignment 1/RiceDataset.txt")
+```
+
+```{r SVM}
+library(e1071)
+rice <- read.delim("~/Desktop/BT2101 Proj/Assignment 1/RiceDataset.txt")
+
+index <- 1:nrow(rice)
+set.seed(123)
+testindex <- sample(index, trunc(length(index)/3)) 
+testset <- rice[testindex,]
+trainset <- rice[-testindex,]
+svm.model <- svm(CLASS ~ ., data=trainset, type="C-classification", kernel="linear")
+
+results_train <- predict(svm.model,trainset[,-8])
+results_test <- predict(svm.model, testset[,-8] )
+cf.train <- as.matrix(table(pred=results_train,actual=trainset$CLASS)) 
+cf.test <- as.matrix(table(pred=results_test,actual=testset$CLASS))
+```
