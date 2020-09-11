@@ -9,14 +9,10 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r load library}
-library(e1071)
-rice = read.delim("~/Desktop/BT2101 Proj/Assignment 1/RiceDataset.txt")
-```
-
+# 
 ```{r SVM}
 library(e1071)
-rice <- read.delim("~/Desktop/BT2101 Proj/Assignment 1/RiceDataset.txt")
+rice <- read.delim("RiceDataset.txt")
 
 index <- 1:nrow(rice)
 set.seed(123)
