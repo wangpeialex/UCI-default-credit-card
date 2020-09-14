@@ -9,10 +9,9 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# 
-```{r SVM}
+```{r Linear Kernel,echo=TRUE}
 library(e1071)
-rice <- read.delim("RiceDataset.txt")
+rice <- RiceDataset
 
 index <- 1:nrow(rice)
 set.seed(123)
@@ -25,4 +24,70 @@ results_train <- predict(svm.model,trainset[,-8])
 results_test <- predict(svm.model, testset[,-8] )
 cf.train <- as.matrix(table(pred=results_train,actual=trainset$CLASS)) 
 cf.test <- as.matrix(table(pred=results_test,actual=testset$CLASS))
+trainAccuracy = (cf.train)/sum(cf.train)
+cf.test
+
+accuracy_train = (cf.train[1,1] + cf.train[2,2])/sum(cf.train)
+accuracy_test = (cf.test[1,1] + cf.test[2,2])/sum(cf.test)
+accuracy_train
+accuracy_test
 ```
+# Interpretation of R code
+
+
+# Accuracy of R code
+**Accuracy over on training set:** 93.03%
+**Accuracy over test set:** 92.68%
+
+# Using other kernels
+```{r Polynomial Kernel,echo=TRUE}
+svm.model <- svm(CLASS ~ ., data=trainset, type="C-classification", kernel="polynomial")
+
+results_train <- predict(svm.model,trainset[,-8])
+results_test <- predict(svm.model, testset[,-8] )
+cf.train <- as.matrix(table(pred=results_train,actual=trainset$CLASS)) 
+cf.test <- as.matrix(table(pred=results_test,actual=testset$CLASS))
+trainAccuracy = (cf.train)/sum(cf.train)
+cf.test
+
+accuracy_train = (cf.train[1,1] + cf.train[2,2])/sum(cf.train)
+accuracy_test = (cf.test[1,1] + cf.test[2,2])/sum(cf.test)
+accuracy_train
+accuracy_test
+```
+```{r Sigmoid Kernel,echo=TRUE}
+svm.model <- svm(CLASS ~ ., data=trainset, type="C-classification", kernel="sigmoid")
+
+results_train <- predict(svm.model,trainset[,-8])
+results_test <- predict(svm.model, testset[,-8] )
+cf.train <- as.matrix(table(pred=results_train,actual=trainset$CLASS)) 
+cf.test <- as.matrix(table(pred=results_test,actual=testset$CLASS))
+trainAccuracy = (cf.train)/sum(cf.train)
+cf.test
+
+accuracy_train = (cf.train[1,1] + cf.train[2,2])/sum(cf.train)
+accuracy_test = (cf.test[1,1] + cf.test[2,2])/sum(cf.test)
+accuracy_train
+accuracy_test
+```
+```{r Radial basis Kernel,echo=TRUE}
+svm.model <- svm(CLASS ~ ., data=trainset, type="C-classification", kernel="radial")
+
+results_train <- predict(svm.model,trainset[,-8])
+results_test <- predict(svm.model, testset[,-8] )
+cf.train <- as.matrix(table(pred=results_train,actual=trainset$CLASS)) 
+cf.test <- as.matrix(table(pred=results_test,actual=testset$CLASS))
+trainAccuracy = (cf.train)/sum(cf.train)
+cf.test
+
+accuracy_train = (cf.train[1,1] + cf.train[2,2])/sum(cf.train)
+accuracy_test = (cf.test[1,1] + cf.test[2,2])/sum(cf.test)
+accuracy_train
+accuracy_test
+```
+## Summary
+Accuracy on test set of different kernels:
+Linear: 92.68%
+Polynomial: 90.16%
+Sigmoid: 86.69%
+Radial basis: 92.36%
