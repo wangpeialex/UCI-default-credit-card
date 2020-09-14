@@ -2,7 +2,7 @@
 title: "Assignment 1"
 author: "Group 6"
 date: "9/10/2020"
-output: pdf_document
+output: html_document
 ---
 
 ```{r setup, include=FALSE}
@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r Linear Kernel,echo=TRUE}
 library(e1071)
-rice <- RiceDataset
+rice <- read.delim("RiceDataset.txt", header = TRUE, stringsAsFactors = TRUE)
 
 index <- 1:nrow(rice)
 set.seed(123)
@@ -26,20 +26,21 @@ cf.train <- as.matrix(table(pred=results_train,actual=trainset$CLASS))
 cf.test <- as.matrix(table(pred=results_test,actual=testset$CLASS))
 trainAccuracy = (cf.train)/sum(cf.train)
 cf.test
+```
+## 1. Interpretation of R code
 
+
+## 2.Accuracy of R code
+```{r accuracy}
 accuracy_train = (cf.train[1,1] + cf.train[2,2])/sum(cf.train)
 accuracy_test = (cf.test[1,1] + cf.test[2,2])/sum(cf.test)
 accuracy_train
 accuracy_test
 ```
-# Interpretation of R code
-
-
-# Accuracy of R code
 **Accuracy over on training set:** 93.03%
 **Accuracy over test set:** 92.68%
 
-# Using other kernels
+## 3.Using other kernels
 ```{r Polynomial Kernel,echo=TRUE}
 svm.model <- svm(CLASS ~ ., data=trainset, type="C-classification", kernel="polynomial")
 
@@ -85,9 +86,12 @@ accuracy_test = (cf.test[1,1] + cf.test[2,2])/sum(cf.test)
 accuracy_train
 accuracy_test
 ```
-## Summary
-Accuracy on test set of different kernels:
-Linear: 92.68%
-Polynomial: 90.16%
-Sigmoid: 86.69%
-Radial basis: 92.36%
+### Summary
+#### Accuracy on test set of different kernels:
+- Linear: 92.68%
+- Polynomial: 90.16%
+- Sigmoid: 86.69%
+- Radial basis: 92.36%
+
+#### Explanations:
+
