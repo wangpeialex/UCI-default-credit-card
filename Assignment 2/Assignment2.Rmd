@@ -8,9 +8,9 @@ author:
 - Wang Zi A0194504E
 date: "10/18/2020"
 output:
-  pdf_document: default
   html_document:
     df_print: paged
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -57,7 +57,7 @@ There are two possible spliting cases:
    
 >The total avarage Gini index and the reduction in terms of Gini index:
 $$Gini(left,right) = \frac{4}{10} \times Gini(left) + \frac{6}{10} \times Gini(right) = 0.2667$$
-$$The reduction in terms of Gini index = 0.48 - Gini(left,right) = 0.2133$$
+$$The\ reduction\ in\ terms\ of\ Gini\ index = 0.48 - Gini(left,right) = 0.2133$$
 
 **Case 2**: Year Born<=84 and Year Born>84
 
@@ -75,7 +75,7 @@ $$The reduction in terms of Gini index = 0.48 - Gini(left,right) = 0.2133$$
    
 >The total avarage Gini index and the reduction in terms of Gini index:
 $$Gini(left,right) = \frac{8}{10} \times Gini(left) + \frac{2}{10} \times Gini(right) = 0.4$$
-$$The reduction in terms of Gini index = 0.48 - Gini(left,right) = 0.08$$
+$$The\ reduction\ in\ terms\ of\ Gini\ index = 0.48 - Gini(left,right) = 0.08$$
 
 Therfore, the maximum reduction is 0.08, which is the spit at Year Born<=84 and Year Born>84.
 
@@ -145,17 +145,17 @@ Firstly, we need to sort the dataset according to the attribute "Income"
 
 There are four possible spliting cases:
 
-**Case 1**: income<=81 and income>81
+**Case 1**: income<=(81+100)/2=90.5 and income>(81+100)/2=90.5
 
 >Left node:
    number of samples = 8, including 2 samples of "yes" and 6 samples of "no"
-   $$p_y = \frac{2}{8} = \frac{1}{4} \\  p_n = \frac{6}{8} = \frac{3}{4}$$
+   $$p_y = \frac{2}{8} = \frac{1}{4} \ \   p_n = \frac{6}{8} = \frac{3}{4}$$
    Hence, the entropy of the left node is:
    $$Entropy(left) = - (p_y \times \log_2p_y + p_n \times \log_2p_n)$$
    
 >Right node:
    number of samples = 4, including 4 samples of "yes" and 0 samples of "no"
-   $$p_y = 1 \\  p_n = 0$$
+   $$p_y = 1 \ \  p_n = 0$$
    Hence, the entropy of the right node is:
    $$Entropy(right) = - (p_y \times \log_2p_y + p_n \times \log_2p_n)$$
 
@@ -165,17 +165,17 @@ $$Information\ Gain = 1 - I_G(left,right) = 0.459$$
 
 
 
-**Case 2**: income<=72 and income>72
+**Case 2**: income<=(72+81)/2=76.5 and income>(72+81)/2=76.5
 
 >Left node:
    number of samples = 7, including 2 samples of "yes" and 5 samples of "no"
-   $$p_y = \frac{2}{7}  \\  p_n = \frac{5}{7}$$
+   $$p_y = \frac{2}{7}  \ \  p_n = \frac{5}{7}$$
    Hence, the entropy of the left node is:
    $$Entropy(left) = - (p_y \times \log_2p_y + p_n \times \log_2p_n)$$
    
 >Right node:
    number of samples = 5, including 4 samples of "yes" and 1 samples of "no"
-   $$p_y = \frac{4}{5}  \\  p_n = \frac{1}{5}$$
+   $$p_y = \frac{4}{5}  \ \  p_n = \frac{1}{5}$$
    Hence, the entropy of the right node is:
    $$Entropy(right) = - (p_y \times \log_2p_y + p_n \times \log_2p_n)$$
 
@@ -184,17 +184,17 @@ $$I_G(left,right) = \frac{7}{12} \times Entropy(left) + \frac{5}{12} \times Entr
 $$Information\ Gain = - (p_y \times \log_2p_y + p_n \times \log_2p_n) = 0.196$$
   
   
-**Case 3**: income<=21 and income>21
+**Case 3**: income<=(21+22)/2=21.5 and income>(21+22)/2=21.5
 
 >Left node:
    number of samples = 1, including 1 samples of "yes" and 0 samples of "no"
-   $$p_y = 1  \\  p_n = 0$$
+   $$p_y = 1  \ \  p_n = 0$$
    Hence, the entropy of the left node is:
    $$Entropy(left) = - (p_y \times \log_2p_y + p_n \times \log_2p_n) = 0$$
    
 >Right node:
    number of samples = 11, including 5 samples of "yes" and 6 samples of "no"
-   $$p_y = \frac{5}{11}  \\  p_n = \frac{6}{11}$$
+   $$p_y = \frac{5}{11}  \ \  p_n = \frac{6}{11}$$
    Hence, the entropy of the right node is:
    $$Entropy(right) = - (p_y \times \log_2p_y + p_n \times \log_2p_n)$$
 
@@ -203,17 +203,17 @@ $$I_G(left,right) = \frac{1}{12} \times Entropy(left) + \frac{11}{12} \times Ent
 $$Information\ Gain = - (p_y \times \log_2p_y + p_n \times \log_2p_n) = 0.09$$
 
 
-**Case 4**: income<=49 and income>49
+**Case 4**: income<=(49+72)/2=60.5 and income>(49+72)/2=60.5
 
 >Left node:
    number of samples = 6, including 5 samples of "yes" and 1 samples of "no"
-   $$p_y = \frac{5}{6}  \\  p_n = \frac{1}{6}$$
+   $$p_y = \frac{5}{6}  \ \  p_n = \frac{1}{6}$$
    Hence, the entropy of the left node is:
    $$Entropy(left) = - (p_y \times \log_2p_y + p_n \times \log_2p_n)$$
    
 >Right node:
    number of samples = 6, including 1 samples of "yes" and 5 samples of "no"
-   $$p_y = \frac{1}{6}  \\  p_n = \frac{5}{6}$$
+   $$p_y = \frac{1}{6}  \ \  p_n = \frac{5}{6}$$
    Hence, the entropy of the right node is:
    $$Entropy(right) = - (p_y \times \log_2p_y + p_n \times \log_2p_n)$$
 
@@ -242,7 +242,7 @@ We try to select the Age as the second attribute of the decision tree, and then 
 |53 | YES|
 |58 | YES|
 
-It is clear that we should split samples into "age is less or equal to 50" and "age is more than 50" (the number 50 can be repalced by any number in [50,53)), since both the entropy in the left and right will be 0 and the information gain would maximize.
+It is clear that we should split samples into "age is less or equal to (50+53)/2=51.5" and "age is more than (50+53)/2=51.5", since both the entropy in the left and right will be 0 and the information gain would maximize.
 
 
 
