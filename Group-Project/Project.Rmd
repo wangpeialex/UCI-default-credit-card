@@ -10,9 +10,38 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r loading library}
-library(tidyr)
-library(dplyr)
+library(Hmisc)
+library(corrplot)
+library(ggplot2)
 
+# feature selection
+library(leaps)
+
+# SVM
+library(e1071)
+
+# CART tree
+library(partykit) 
+library(rpart) 
+library(rpart.plot)
+
+# C50 tree
+library(C50)
+
+# Bagging
+library(caret) 
+library(ipred) 
+
+# Random forest
+library(randomForest)
+
+# Neural Networks
+library(nnet)
+library(NeuralNetTools)
+
+library(naivebayes)
+
+library(InformationValue)
 ```
 
 ```{r reading data, echo=TRUE}
@@ -95,8 +124,6 @@ hist(card[,c('PAY_1', 'PAY_2', 'PAY_3', 'PAY_4', 'PAY_5', 'PAY_6')])
 ```
 
 ```{r plot data, echo=TRUE}
-library(Hmisc)
-library(corrplot)
 
 res <- cor(as.matrix(card[,-c(1,3,4,5,25)]))
 # Use rcorr from Hmisc
@@ -107,12 +134,12 @@ corrplot(res, method="number")
 ```
 
 ```{r averaging}
-card$PAY_AVG = colMeans(card[,7:12])
-card$BILL_AVG = colMeans(card[,13:18])
-card$AMT_AVG = colMeans(card[,19:24])
-card[,7:24] = NULL
-
-card$LIMIT_BAL = (card$LIMIT_BAL - mean(card$LIMIT_BAL)) / sd(card$LIMIT_BAL)
+# card$PAY_AVG = colMeans(card[,7:12])
+# card$BILL_AVG = colMeans(card[,13:18])
+# card$AMT_AVG = colMeans(card[,19:24])
+# card[,7:24] = NULL
+# 
+# card$LIMIT_BAL = (card$LIMIT_BAL - mean(card$LIMIT_BAL)) / sd(card$LIMIT_BAL)
 
 ```
 
@@ -125,4 +152,275 @@ testIndex = sample(index, trunc(n)/3)
 
 testSet = card[testIndex,]
 trainSet = card[-testIndex, ]
+
+train.target = trainSet$TARGET
+test.target = testSet$TARGET
+
+```
+
+```{r Linear regression}
+set.seed(666)
+lr.full = glm(train.target ~ ., data = trainSet[,2:24],family = "binomial")
+summary(lr.full)
+
+# Significant features: limit_BAL, sex, education, marriage, pay_1,3,6, bill_amt1,2, pay_amt1,2,6
+```
+
+```{r feature selection}
+set.seed(666)
+backward = regsubsets(train.target ~ .,trainSet[,2:24],method = "backward")
+summary(backward)
+plot(backward,scale="r2")
+
+forward = regsubsets(train.target ~ .,trainSet[,2:24],method = "forward")
+summary(forward)
+plot(forward,scale="r2")
+
+
+# backward: limit_bal, Sex, education, pay1, pay4, pay6,bill_Amt3,pay_amt4
+# forward: limit_bal, marriage, pay 1,4,6, bill_amt3,pay_amt4
+
+card2 = card
+card2$PAY_2 = NULL
+card2$PAY_3 = NULL
+card2$PAY_5 = NULL
+card2$BILL_AMT1 = NULL
+card2$BILL_AMT2 = NULL
+card2$BILL_AMT4 = NULL
+card2$BILL_AMT5 = NULL
+card2$BILL_AMT6 = NULL
+card2$PAY_AMT1 = NULL
+card2$PAY_AMT2 = NULL
+card2$PAY_AMT3 = NULL
+card2$PAY_AMT5 = NULL
+card2$PAY_AMT6 = NULL
+
+set.seed(666)
+
+index = 1:nrow(card2)
+n = nrow(card2)
+testIndex = sample(index, trunc(n)/3)
+
+testSet = card2[testIndex,]
+trainSet = card2[-testIndex, ]
+
+train.target = trainSet$TARGET
+test.target = testSet$TARGET
+
+for(i in 2:11) {
+  if(is.numeric(trainSet[,i])) {
+    trainSet[,i] = (trainSet[,i] - mean(trainSet[,i])) / sd(trainSet[,i])
+    testSet[,i] = (testSet[,i] - mean(testSet[,i])) / sd(testSet[,i])
+  }
+}
+
+```
+
+```{r Select features}
+# chistat = matrix(0,23,2)
+# issue = rep("", 23)
+# col = ncol(card) - 2
+# class = card$TARGET
+# for(i in 1:12) {
+#   x = as.factor(card[,i+1])
+#   tbl = table(x, class)
+#   cat("\n Attribute =", i, vars[i], "\n")
+#   print(tbl)
+#   chi2res = chisq.test(tbl)
+#   print(chi2res)
+#   chistat[i,1] = chi2res$statistic
+#   chistat[i,2] = chi2res$p.value
+# }
+# 
+# chistat
+
+
+```
+
+
+```{r SVM}
+library(e1071)
+set.seed(666)
+svm.linear <- svm(train.target ~ ., data=trainSet[,2:11], type="C-classification", kernel="linear")
+
+train.res <- predict(svm.linear,data = trainSet[,2:11])
+test.res <- predict(svm.linear, newdata = testSet[,2:11] )
+mean(train.res == train.target) # 0.8229
+mean(test.res == test.target) # 0.8162
+
+set.seed(666)
+svm.linear <- svm(train.target ~ ., data=trainSet[,2:11], type="C-classification", kernel="polynomial")
+
+train.res <- predict(svm.linear,data = trainSet[,2:11])
+test.res <- predict(svm.linear, newdata = testSet[,2:11] )
+mean(train.res == train.target) # 0.8211
+mean(test.res == test.target) # 0.8144
+
+set.seed(666)
+svm.linear <- svm(train.target ~ ., data=trainSet[,2:11], type="C-classification", kernel="sigmoid")
+
+train.res <- predict(svm.linear,data = trainSet[,2:11])
+test.res <- predict(svm.linear, newdata = testSet[,2:11] )
+mean(train.res == train.target) # 0.7426
+mean(test.res == test.target) # 0.7431
+
+set.seed(666)
+svm.linear <- svm(train.target ~ ., data=trainSet[,2:11], type="C-classification", kernel="radial")
+
+train.res <- predict(svm.linear,data = trainSet[,2:11])
+test.res <- predict(svm.linear, newdata = testSet[,2:11] )
+mean(train.res == train.target) # 0.824
+mean(test.res == test.target) # 0.818
+```
+
+```{r CART Tree}
+
+# Recursive partitioning method
+# Uses Gini index to calculate impurity index
+# Try two different values of the complexity
+# control parameter (cp)
+cart.tree1 = rpart(train.target ~ ., data = trainSet[,2:11], model=TRUE,method='class',control=rpart.control(cp=0.0001))
+train.cart1 = predict(cart.tree1, newdata=trainSet[,2:11],type="class")
+table(train.cart1,train.target)
+rpart.plot(cart.tree1)
+test.cart1 = predict(cart.tree1, newdata=testSet[,2:11],type="class")
+mean(train.cart1 == train.target) # 0.8522
+mean(test.cart1 == test.target) # 0.7904
+
+cart.tree2 = rpart(train.target ~ ., trainSet[,2:11], model=TRUE,method='class',control=rpart.control(cp=0.01))
+train.cart2 = predict(cart.tree2, newdata=trainSet[,2:11],type="class")
+test.cart2 = predict(cart.tree2, newdata=testSet[,2:11],type="class")
+table(train.cart2,train.target)
+rpart.plot(cart.tree2)
+
+plot(cart.tree2)
+text(cart.tree2,cex=1.2,use.n=TRUE,xpd=TRUE)
+
+mean(train.cart2 == train.target) # 0.8207
+mean(test.cart2 == test.target) # 0.8174
+```
+```{r CHAID}
+library(CHAID)
+
+# MUST have factor variables
+vote = lapply(vote,factor)
+chaid.tree = chaid(train.target ~ ., data = trainSet[,2:11])
+chaid.fit = predict(chaid.tree, newdata=trainSet[,2:11], type="response")
+table(chaid.fit, class)
+plot(chaid.tree)
+
+```
+
+```{r C50 Tree}
+library(C50)
+vote = lapply(vote,factor)
+C50tree = C5.0(class ~ ., data=vote[vars])
+summary(C50tree)
+plot(C50tree, type='s')
+```
+
+```{r Bagging}
+set.seed(666)
+bagging = bagging(train.target ~ ., nbagg=25,data=trainSet[,2:11])
+
+train.bagging = predict(bagging, newdata=trainSet[,2:11]) 
+mean(train.bagging == train.target) # 0.9928
+
+test.bagging = predict(bagging, newdata=testSet[,2:11]) 
+mean(test.bagging == test.target) # 0.7999 SUPER over-fit
+
+varImp(bagging)
+```
+
+```{r Random forest}
+set.seed(666)
+rf = randomForest(train.target ~ .,  data = trainSet[,2:11])
+print(rf) # R^2 = 85.95%
+plot(rf)
+
+train.rf = predict(rf, newdata = trainSet[,2:11])
+test.rf = predict(rf, newdata = testSet[,2:11])
+
+mean(train.rf == train.target) # 0.9319
+mean(test.rf == test.target) # 0.8164
+
+```
+
+```{r gbm}
+library(gbm)
+set.seed(666)
+gbm = gbm(train.target ~ .,  data = trainSet[,2:11],distribution = "bernoulli", n.trees = 100, shrinkage = 0.07)
+
+train.gbm = predict(gbm, data = trainSet[,2:11],type = "response")
+test.gbm = predict(gbm, newdata = testSet[,2:11], type="response")
+
+mean(train.gbm == train.target) 
+mean(test.gbm == test.target)
+
+```
+
+```{r Naive bayes}
+bayes = naive_bayes(train.target ~ ., trainSet[,2:11])
+train.bayes = predict(bayes, newdata = trainSet[,2:11])
+test.bayes = predict(bayes, newdata = testSet[,2:11])
+
+mean(train.bayes == train.target) # 0.7911
+mean(test.bayes == test.target) # 787
+```
+
+```{r General Linear Regression}
+set.seed(666)
+glm = glm(train.target ~ ., data=trainSet[,2:11],family = "binomial")
+train.glm = predict(glm, newdata=trainSet[,2:11],type="response")
+test.glm = predict(glm, newdata=testSet[,2:11],type="response")
+train.glm.bin = ifelse(train.glm > 0.5, 1, 0)
+test.glm.bin = ifelse(test.glm > 0.5, 1, 0)
+
+mean(train.glm.bin == train.target) # 0.82095
+mean(test.glm.bin == test.target) # 0.8141
+```
+
+```{r NNet}
+ntrain = nrow(trainSet)
+# numericTrain = trainSet
+# numericTrain$ID = NULL
+# numericTrain$SEX = NULL
+# numericTrain$EDUCATION = NULL
+# numericTrain$MARRIAGE = NULL
+# numericTrain$TARGET = NULL
+rmse <- NULL
+testacc <- NULL
+iteration <- NULL
+for (Niters in seq(200,1500, by = 20)) {
+  set.seed(666)
+  nn <- nnet(train.target ~ .,data=trainSet[,2:11],size=20,decay=5e-4,maxit=Niters) 
+  SSresiduals <- apply(nn$residuals,1:2,function(x) x*x)
+  rmse0 <- sqrt(sum(SSresiduals)/(2*ntrain-1))
+  rmse <- append(rmse,rmse0)
+  test.pred <- predict(nn,newdata=testSet[,2:11],type=c("class"))
+  testacc <- append(testacc,mean(test.target == test.pred))
+  iteration <- append(iteration,Niters)
+}
+
+```
+
+```{r plot nnet}
+obs <- data.frame(cbind(iteration,rmse,testacc))
+p <- ggplot(obs, aes(x = iteration))
+p <- p + geom_point(aes(y=rmse)) + geom_line(aes(y = rmse , color = "Train data RMSE")) 
+p <- p + geom_point(aes(y=testacc)) + geom_line(aes(y = testacc, color = "Test data ACC")) 
+p <- p + scale_y_continuous(sec.axis = sec_axis(~. *100, name = "Test data ACC [%]"))
+p <- p + scale_color_manual(values = c("blue", "red"))
+p <- p + labs(y = "Train data RMSE",
+x = "Iterations",
+color = "Parameter")
+p <- p + theme(legend.position = c(0.8, 0.5))
+p
+
+
+rmse
+testacc
+min(rmse)
+max(testacc)
+
 ```
