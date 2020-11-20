@@ -13,6 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(Hmisc)
 library(corrplot)
 library(ggplot2)
+library(Rfast)
 
 # feature selection
 library(leaps)
@@ -62,15 +63,24 @@ card$EDUCATION = as.factor(card$EDUCATION)
 
 ```{r data information}
 describe(card[,c('LIMIT_BAL')]) # Broad range
-hist(card$LIMIT_BAL)
+hist(card$LIMIT_BAL,col="lightblue", main = "Histogram of limit of balance", xlab="limit of balance")
+barplot(table(card$SEX,card$LIMIT_BAL))
 ```
 
 ```{r Data exploration}
 # Categorical data
 describe(card[,c('SEX', 'EDUCATION', 'MARRIAGE')]) 
-barplot(table(card$SEX))
-barplot(table(card$EDUCATION))
-barplot(table(card$MARRIAGE))
+barplot(table(card$SEX),col= c("lightblue", "red"))
+barplot(table(card$TARGET, card$SEX), col=c("lightblue", "red"),beside = TRUE)
+barplot(table(card$TARGET,card$EDUCATION),col=rainbow(2),legend("topright",fill=c("lightblue", "red"),legend=c("0","1")))
+
+barplot(table(card$EDUCATION),col=rainbow(3))
+barplot(table(card$TARGET, card$EDUCATION), col=c("lightblue", "red"),beside = TRUE)
+barplot(table(card$TARGET,card$EDUCATION),col=c("lightblue", "red"),legend("topright",fill=c("lightblue", "red"),legend=c("0","1")))
+
+barplot(table(card$MARRIAGE),,col=rainbow(3))
+barplot(table(card$TARGET, card$MARRIAGE), col=c("lightblue", "red"),beside = TRUE)
+barplot(table(card$TARGET,card$MARRIAGE),col=c("lightblue", "red"),legend("topright",fill=c("lightblue", "red"),legend=c("0","1")))
 # SEX looks fine
 # Education: 0 undocumented. 5,6 others
 # Marriage: 0 undocumented. 3 others
@@ -78,12 +88,13 @@ barplot(table(card$MARRIAGE))
 
 ```{r data}
 describe(card$AGE)
-hist(card$AGE)
+hist(card$AGE, main="Histogram of AGE", xlab="AGE", col = "lightblue")
 ```
 
 ```{r data}
 describe(card[,c('PAY_1', 'PAY_2', 'PAY_3', 'PAY_4', 'PAY_5', 'PAY_6')]) 
-hist(card[,c('PAY_1', 'PAY_2', 'PAY_3', 'PAY_4', 'PAY_5', 'PAY_6')])
+hist(card[,c('PAY_1', 'PAY_2', 'PAY_3', 'PAY_4', 'PAY_5', 'PAY_6')], col="lightblue")\
+
 # -2 undo
 # -2, -1, 0 should be combined as 0
 ```
@@ -99,6 +110,14 @@ hist(card[,c('BILL_AMT1', 'BILL_AMT2', 'BILL_AMT3', 'BILL_AMT4', 'BILL_AMT5', 'B
 describe(card[,c('PAY_AMT1', 'PAY_AMT2', 'PAY_AMT3', 'PAY_AMT4', 'PAY_AMT5', 'PAY_AMT6')]) 
 
 hist(card[,c('PAY_AMT1', 'PAY_AMT2', 'PAY_AMT3', 'PAY_AMT4', 'PAY_AMT5', 'PAY_AMT6')])
+hist(log(card[,c('PAY_AMT1', 'PAY_AMT2', 'PAY_AMT3', 'PAY_AMT4', 'PAY_AMT5', 'PAY_AMT6')]))
+```
+
+```{r data}
+describe(card$TARGET) 
+
+barplot(table(card$TARGET),col=c("lightblue", "red"))
+
 ```
 
 ```{r Data cleaning}
@@ -106,8 +125,10 @@ hist(card[,c('PAY_AMT1', 'PAY_AMT2', 'PAY_AMT3', 'PAY_AMT4', 'PAY_AMT5', 'PAY_AM
 # Marriage: 0 -> 3
 # PAY_i: -2, -1, 0 -> 0
 # Check large pay_amt for outliers
-card$EDUCATION[card$EDUCATION==0 | card$EDUCATION==5 | card$EDUCATION==6] = 5
+card$EDUCATION[card$EDUCATION==0 | card$EDUCATION==6] = 5
 card$MARRIAGE[card$MARRIAGE==0] = 3
+card$EDUCATION = factor(card$EDUCATION)
+card$MARRIAGE = factor(card$MARRIAGE)
 card$PAY_1[card$PAY_1==-2 | card$PAY_1==-1] = 0
 card$PAY_2[card$PAY_2==-2 | card$PAY_2==-1] = 0
 card$PAY_3[card$PAY_3==-2 | card$PAY_3==-1] = 0
@@ -117,13 +138,13 @@ card$PAY_6[card$PAY_6==-2 | card$PAY_6==-1] = 0
 
 
 describe(card[,c("EDUCATION","MARRIAGE")])
-barplot(table(card$EDUCATION))
-barplot(table(card$MARRIAGE))
-describe(card[,c('PAY_1', 'PAY_2', 'PAY_3', 'PAY_4', 'PAY_5', 'PAY_6')]) 
+barplot(table(card$EDUCATION), col=rainbow(5))
+barplot(table(card$MARRIAGE),col=rainbow(3))
+describe(card[,c('PAY_1', 'PAY_2', 'PAY_3', 'PAY_4', 'PAY_5', 'PAY_6')])
 hist(card[,c('PAY_1', 'PAY_2', 'PAY_3', 'PAY_4', 'PAY_5', 'PAY_6')])
 ```
 
-```{r plot data, echo=TRUE}
+```{r feature engineering, echo=TRUE}
 
 res <- cor(as.matrix(card[,-c(1,3,4,5,25)]))
 # Use rcorr from Hmisc
@@ -131,15 +152,22 @@ res <- cor(as.matrix(card[,-c(1,3,4,5,25)]))
 corrplot(res, method="circle")
 corrplot(res, method="number")
 # Bill_AMT 1 - 6 high correlation
-```
 
-```{r averaging}
-# card$PAY_AVG = colMeans(card[,7:12])
-# card$BILL_AVG = colMeans(card[,13:18])
-# card$AMT_AVG = colMeans(card[,19:24])
-# card[,7:24] = NULL
-# 
-# card$LIMIT_BAL = (card$LIMIT_BAL - mean(card$LIMIT_BAL)) / sd(card$LIMIT_BAL)
+card2 = card
+card2$PAY_MAX = apply(card[,c("PAY_1","PAY_2","PAY_3","PAY_4","PAY_5","PAY_6")],1,max) 
+card2$BILL_AMT_AVG = rowMeans(card[,13:18])
+card2$PAY_AMT_AVG = rowMeans(card[,19:24])
+card2[,13:24] = NULL
+res = cor(as.matrix(card2[,-c(1,3,4,5,13)]))
+corrplot(res, method="circle")
+
+hist(card2$PAY_AMT_AVG)
+card2$PAY_AMT_AVG_LOG = log(card2$PAY_AMT_AVG + 1 - min(card2$PAY_AMT_AVG))
+hist(card2$PAY_AMT_AVG_LOG)
+
+hist(card2$BILL_AMT_AVG)
+card2$BILL_AMT_AVG_LOG = log(card2$BILL_AMT_AVG + 1 - min(card2$BILL_AMT_AVG))
+hist(card2$BILL_AMT_AVG_LOG)
 
 ```
 
@@ -150,29 +178,23 @@ index = 1:nrow(card)
 n = nrow(card)
 testIndex = sample(index, trunc(n)/3)
 
-testSet = card[testIndex,]
-trainSet = card[-testIndex, ]
+testSet = card2[testIndex,]
+trainSet = card2[-testIndex,]
 
 train.target = trainSet$TARGET
 test.target = testSet$TARGET
 
 ```
 
-```{r Linear regression}
-set.seed(666)
-lr.full = glm(train.target ~ ., data = trainSet[,2:24],family = "binomial")
-summary(lr.full)
 
-# Significant features: limit_BAL, sex, education, marriage, pay_1,3,6, bill_amt1,2, pay_amt1,2,6
-```
 
 ```{r feature selection}
 set.seed(666)
-backward = regsubsets(train.target ~ .,trainSet[,2:24],method = "backward")
+backward = regsubsets(train.target ~ .,trainSet[,-c(1,3,4,5,6,7)],method = "backward")
 summary(backward)
 plot(backward,scale="r2")
 
-forward = regsubsets(train.target ~ .,trainSet[,2:24],method = "forward")
+forward = regsubsets(train.target ~ .,trainSet[,-c(1,3,4,5,6,7)],method = "forward")
 summary(forward)
 plot(forward,scale="r2")
 
@@ -180,97 +202,169 @@ plot(forward,scale="r2")
 # backward: limit_bal, Sex, education, pay1, pay4, pay6,bill_Amt3,pay_amt4
 # forward: limit_bal, marriage, pay 1,4,6, bill_amt3,pay_amt4
 
-card2 = card
-card2$PAY_2 = NULL
-card2$PAY_3 = NULL
-card2$PAY_5 = NULL
-card2$BILL_AMT1 = NULL
-card2$BILL_AMT2 = NULL
-card2$BILL_AMT4 = NULL
-card2$BILL_AMT5 = NULL
-card2$BILL_AMT6 = NULL
-card2$PAY_AMT1 = NULL
-card2$PAY_AMT2 = NULL
-card2$PAY_AMT3 = NULL
-card2$PAY_AMT5 = NULL
-card2$PAY_AMT6 = NULL
+# card2 = card
+# card2$PAY_2 = NULL
+# card2$PAY_3 = NULL
+# card2$PAY_5 = NULL
+# card2$BILL_AMT1 = NULL
+# card2$BILL_AMT2 = NULL
+# card2$BILL_AMT4 = NULL
+# card2$BILL_AMT5 = NULL
+# card2$BILL_AMT6 = NULL
+# card2$PAY_AMT1 = NULL
+# card2$PAY_AMT2 = NULL
+# card2$PAY_AMT3 = NULL
+# card2$PAY_AMT5 = NULL
+# card2$PAY_AMT6 = NULL
+# 
+# set.seed(666)
+# 
+# index = 1:nrow(card2)
+# n = nrow(card2)
+# testIndex = sample(index, trunc(n)/3)
+# 
+# testSet = card2[testIndex,]
+# trainSet = card2[-testIndex, ]
+# 
+# train.target = trainSet$TARGET
+# test.target = testSet$TARGET
+# 
+# for(i in 2:11) {
+#   if(is.numeric(trainSet[,i])) {
+#     trainSet[,i] = (trainSet[,i] - mean(trainSet[,i])) / sd(trainSet[,i])
+#     testSet[,i] = (testSet[,i] - mean(testSet[,i])) / sd(testSet[,i])
+#   }
+# }
 
-set.seed(666)
+# backward: limit_bal, education, pay1, pay4, pay6,bill_Amt3,pay_amt4
+# forward: limit_bal, marriage, pay 1,4,6, bill_amt3,pay_amt4
+```
+```{r Select features}
+chistat = matrix(0,8,2)
 
-index = 1:nrow(card2)
-n = nrow(card2)
-testIndex = sample(index, trunc(n)/3)
-
-testSet = card2[testIndex,]
-trainSet = card2[-testIndex, ]
-
-train.target = trainSet$TARGET
-test.target = testSet$TARGET
-
-for(i in 2:11) {
-  if(is.numeric(trainSet[,i])) {
-    trainSet[,i] = (trainSet[,i] - mean(trainSet[,i])) / sd(trainSet[,i])
-    testSet[,i] = (testSet[,i] - mean(testSet[,i])) / sd(testSet[,i])
+names = names(card2)
+var = rep("", 23)
+col = ncol(card) - 2
+class = card$TARGET
+for(i in 1:10) {
+  if(is.factor(card[,i])) {
+    x = as.factor(card[,i])
+    tbl = table(x, class)
+    cat("\n Attribute =", i, names[i], "\n")
+    print(tbl)
+    chi2res = chisq.test(tbl)
+    print(chi2res)
+    chistat[i,1] = chi2res$statistic
+    chistat[i,2] = chi2res$p.value
   }
 }
-
-```
-
-```{r Select features}
-# chistat = matrix(0,23,2)
-# issue = rep("", 23)
-# col = ncol(card) - 2
-# class = card$TARGET
-# for(i in 1:12) {
-#   x = as.factor(card[,i+1])
-#   tbl = table(x, class)
-#   cat("\n Attribute =", i, vars[i], "\n")
-#   print(tbl)
-#   chi2res = chisq.test(tbl)
-#   print(chi2res)
-#   chistat[i,1] = chi2res$statistic
-#   chistat[i,2] = chi2res$p.value
-# }
-# 
-# chistat
+chistat
 
 
 ```
 
+```{r Logistic regression}
+
+train_total = 0
+test_total = 0
+
+glm = glm(train.target ~ ., data = trainSet[,-c(1,6,7,9,10)],family = "binomial")
+summary(glm)
+
+train.glm = predict(glm, newdata = trainSet[,-c(1,6,7,9,10)])
+plotROC(train.target, train.glm)
+  
+test.glm = predict(glm, newdata = testSet[,-c(1,6,7,9,10)])
+plotROC(test.target, test.glm)
+
+for (s in 600:700) {
+  set.seed(s)
+  
+  index = 1:nrow(card)
+  n = nrow(card)
+  testIndex = sample(index, trunc(n)/3)
+  
+  testSet = card2[testIndex,]
+  trainSet = card2[-testIndex,]
+  
+  train.target = trainSet$TARGET
+  test.target = testSet$TARGET
+  
+  glm = glm(train.target ~ ., data = trainSet[,-c(1,7,9,10)],family = "binomial")
+  summary(glm)
+  
+  # Significant features: limit_BAL, sex, education, marriage, pay_1,3,6, bill_amt1,2, pay_amt1,2,6
+  
+  train.glm = predict(glm, newdata = trainSet[,-c(1,7,9,10)]) # using log
+  # plotROC(train.target, train.glm)
+  train.glm.bin = ifelse(predict(glm, newdata = trainSet[,-c(1,7,9,10)],type="response")>0.5,1,0)
+  train_total = train_total + mean(train.glm.bin == train.target)
+  
+  test.glm = predict(glm, newdata = testSet[,-c(1,7,9,10)])
+  # plotROC(test.target, test.glm)
+  test.glm.bin = ifelse(predict(glm, newdata = testSet[,-c(1,7,9,10)],type="response")>0.5,1,0)
+  test_total = test_total + mean(test.glm.bin == test.target)
+  # 0.7885
+  
+}
+
+train_total/100 # 0.7980
+test_total/100 # 0.7975
+
+```
 
 ```{r SVM}
 library(e1071)
-set.seed(666)
-svm.linear <- svm(train.target ~ ., data=trainSet[,2:11], type="C-classification", kernel="linear")
+# set.seed(666)
+# svm.linear <- svm(train.target ~ ., data=trainSet[,2:11], type="C-classification", kernel="linear")
+# 
+# train.res <- predict(svm.linear,data = trainSet[,2:11])
+# test.res <- predict(svm.linear, newdata = testSet[,2:11] )
+# mean(train.res == train.target) # 0.8229
+# mean(test.res == test.target) # 0.8162
+# 
+# set.seed(666)
+# svm.linear <- svm(train.target ~ ., data=trainSet[,2:11], type="C-classification", kernel="polynomial")
+# 
+# train.res <- predict(svm.linear,data = trainSet[,2:11])
+# test.res <- predict(svm.linear, newdata = testSet[,2:11] )
+# mean(train.res == train.target) # 0.8211
+# mean(test.res == test.target) # 0.8144
+# 
+# set.seed(666)
+# svm.linear <- svm(train.target ~ ., data=trainSet[,2:11], type="C-classification", kernel="sigmoid")
+# 
+# train.res <- predict(svm.linear,data = trainSet[,2:11])
+# test.res <- predict(svm.linear, newdata = testSet[,2:11] )
+# mean(train.res == train.target) # 0.7426
+# mean(test.res == test.target) # 0.7431
 
-train.res <- predict(svm.linear,data = trainSet[,2:11])
-test.res <- predict(svm.linear, newdata = testSet[,2:11] )
-mean(train.res == train.target) # 0.8229
-mean(test.res == test.target) # 0.8162
+train_total = 0
+test_total = 0
+  
+for(s in 600:700) {
+  set.seed(s)
+  
+  index = 1:nrow(card4)
+  n = nrow(card4)
+  testIndex = sample(index, trunc(n)/3)
+  
+  testSet = card4[testIndex,]
+  trainSet = card4[-testIndex,]
+  
+  train.target = trainSet$TARGET
+  test.target = testSet$TARGET
+  
+  svm.radial <- svm(train.target ~ ., data=trainSet[,-c(1,13,14,15,16)], type="C-classification", kernel="radial")
+  
+  train.res <- predict(svm.radial,data = trainSet[,-c(1,13,14,15,16)])
+  test.res <- predict(svm.radial, newdata = testSet[,-c(1,13,14,15,16)] )
+  train_total = train_total + mean(train.res == train.target) # 0.824
+  test_total = test_total + mean(test.res == test.target) # 0.818
+}
 
-set.seed(666)
-svm.linear <- svm(train.target ~ ., data=trainSet[,2:11], type="C-classification", kernel="polynomial")
-
-train.res <- predict(svm.linear,data = trainSet[,2:11])
-test.res <- predict(svm.linear, newdata = testSet[,2:11] )
-mean(train.res == train.target) # 0.8211
-mean(test.res == test.target) # 0.8144
-
-set.seed(666)
-svm.linear <- svm(train.target ~ ., data=trainSet[,2:11], type="C-classification", kernel="sigmoid")
-
-train.res <- predict(svm.linear,data = trainSet[,2:11])
-test.res <- predict(svm.linear, newdata = testSet[,2:11] )
-mean(train.res == train.target) # 0.7426
-mean(test.res == test.target) # 0.7431
-
-set.seed(666)
-svm.linear <- svm(train.target ~ ., data=trainSet[,2:11], type="C-classification", kernel="radial")
-
-train.res <- predict(svm.linear,data = trainSet[,2:11])
-test.res <- predict(svm.linear, newdata = testSet[,2:11] )
-mean(train.res == train.target) # 0.824
-mean(test.res == test.target) # 0.818
+train_total/100
+test_total/100
 ```
 
 ```{r CART Tree}
@@ -382,23 +476,25 @@ mean(test.glm.bin == test.target) # 0.8141
 
 ```{r NNet}
 ntrain = nrow(trainSet)
-# numericTrain = trainSet
-# numericTrain$ID = NULL
-# numericTrain$SEX = NULL
-# numericTrain$EDUCATION = NULL
-# numericTrain$MARRIAGE = NULL
-# numericTrain$TARGET = NULL
+# 
+library(data.table)
+library(mltools)
+trainSetOHE <- one_hot(as.data.table(trainSet))
+TARGET_train = trainSetOHE$TARGET_1
+testSetOHE <- one_hot(as.data.table(testSet))
+TARGET_test = testSetOHE$TARGET_1
+
 rmse <- NULL
 testacc <- NULL
 iteration <- NULL
-for (Niters in seq(200,1500, by = 20)) {
+for (sz in seq(20,30, by = 2)) {
   set.seed(666)
-  nn <- nnet(train.target ~ .,data=trainSet[,2:11],size=20,decay=5e-4,maxit=Niters) 
+  nn <- nnet(TARGET_train ~ .,data=trainSetOHE[,2:21],size=sz,entropy=TRUE,decay=5e-4,maxit=350) 
   SSresiduals <- apply(nn$residuals,1:2,function(x) x*x)
   rmse0 <- sqrt(sum(SSresiduals)/(2*ntrain-1))
   rmse <- append(rmse,rmse0)
-  test.pred <- predict(nn,newdata=testSet[,2:11],type=c("class"))
-  testacc <- append(testacc,mean(test.target == test.pred))
+  test.pred <- predict(nn,newdata=testSetOHE[,2:21],type=c("class"))
+  testacc <- append(testacc,mean(TARGET_test == test.pred))
   iteration <- append(iteration,Niters)
 }
 
